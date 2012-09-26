@@ -1,4 +1,4 @@
-Business-Tax-Avalara
+business_tax_avalara
 ====================
 
-Business::Tax::Avalara perl module
+Source for the perl module Business::Tax::Avalara
