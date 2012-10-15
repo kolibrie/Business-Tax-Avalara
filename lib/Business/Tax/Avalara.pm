@@ -7,7 +7,10 @@ use XML::LibXML qw();
 use XML::Hash;
 use Try::Tiny;
 use Carp;
-use LWP::UserAgent;
+use LWP;
+use HTTP::Request::Common;
+use Encode qw();
+use Data::Dump;
 
 
 =head1 NAME
@@ -74,6 +77,12 @@ our $VERSION = '1.0.0';
 our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
+# Instanciate our latin1 and utf8 converters. Doing so here
+# allows speedier calls to encode() and decode() on the objects
+# later.
+our $LATIN1_CONVERTER = Encode::find_encoding( 'iso-8859-1' );
+our $UTF8_CONVERTER = Encode::find_encoding( 'utf8' );
+	
 =head1 FUNCTIONS
 
 =head2 new()
@@ -177,6 +186,23 @@ sub get_tax
 	};
 	
 	return $tax_perl_output;
+}
+
+
+=head2 latin1_to_utf8()
+
+Converts a string from latin1 to utf8.
+
+    my $utf8 = latin1_to_utf8( $latin1 );
+
+=cut
+
+sub latin1_to_utf8
+{
+    my ( $latin1 ) = @_;
+    return unless defined( $latin1 );
+
+    return $UTF8_CONVERTER->encode( $LATIN1_CONVERTER->decode( $latin1 ) );
 }
 
 
@@ -403,8 +429,8 @@ Makes the https request to Avalara, and returns the response xml.
 sub _make_request
 {
 	my ( $self, $request_xml ) = @_;
-	#  'https://rest.avalara.net/1.0/tax/get';
 	
+	my $request_text = $request_xml->toString( 0 );
 	
 	my $request_server = $self->{'is_development'}
 		? $AVALARA_DEVELOPMENT_REQUEST_SERVER
@@ -415,18 +441,19 @@ sub _make_request
 	my $user_agent = LWP::UserAgent->new();
 	$user_agent->agent( "perl/Business-Tax-Avalara/$VERSION" );
 	
-	# Set the httpd authentication credentials
-	$user_agent->credentials(
-		$request_server . ':80',
-		'1.0/tax/get',
+	# Create a request
+	my $request = HTTP::Request::Common::POST(
+		$request_url,
+	);
+	
+	$request->authorization_basic(
 		$self->{'user_name'},
 		$self->{'password'},
 	);
 	
-	# Create a request
-	my $request = HTTP::Request->new(POST => $request_url);
-	$request->content_type('text/xml');
-	$request->content( $request_xml );
+	$request->header( content_type => 'text/xml' );
+	$request->content( $request_text );
+	$request->header( content_length => length( $request_text ) );
 	
 	# Pass request to the user agent and get a response back
 	my $response = $user_agent->request( $request );
@@ -438,6 +465,9 @@ sub _make_request
 	}
 	else
 	{
+		warn $response->status_line();
+		warn $request->as_string();
+		warn $response->as_string();
 		die "Failed to fetch XML response: " . $response->status_line() . "\n";
 	}
 	
