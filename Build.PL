@@ -1,11 +1,11 @@
-use 5.006;
+use 5.10;
 use strict;
 use warnings;
 use Module::Build;
 
 my $builder = Module::Build->new(
 	module_name          => 'Business::Tax::Avalara',
-	license              => 'artistic',
+	license              => 'GPL_3',
 	dist_author          =>
 	[
 		'Kate Kirby <kate@cpan.org>',
@@ -13,14 +13,20 @@ my $builder = Module::Build->new(
 	dist_version_from    => 'lib/Business/Tax/Avalara.pm',
 	build_requires       =>
 	{
-		'Data::Dump'      => 0,
 		'Test::Deep'      => 0,
 		'Test::Exception' => 0,
 		'Test::More'      => 0,
 	},
 	requires             =>
 	{
-		'perl'            => 5.006,
+		'perl'                 => 5.10,
+		'Try::Tiny'            => 0,
+		'LWP::UserAgent'       => 0,
+		'Carp'                 => 0,
+		'Encode'               => 0,
+		'Data::Dump'           => 0,
+		'LWP::Protocol::https' => 0,
+		'JSON::PP'             => 0,
 	},
 	add_to_cleanup       =>
 	[
