@@ -3,14 +3,13 @@ package Business::Tax::Avalara;
 use strict;
 use warnings;
 
-use XML::LibXML qw();
-use XML::Hash;
 use Try::Tiny;
 use Carp;
 use LWP;
 use HTTP::Request::Common;
 use Encode qw();
 use Data::Dump;
+use JSON::PP;
 
 
 =head1 NAME
@@ -32,7 +31,7 @@ Business::Tax::Avalara - An interface to Avalara's REST webservice
 		},
 	);
 	
-	$avalara_gateway->get_tax(
+	my $tax_results = $avalara_gateway->get_tax(
 		destination_address =>
 		{
 			line_1      => '42 Evergreen Terrace',
@@ -59,11 +58,8 @@ Business::Tax::Avalara - An interface to Avalara's REST webservice
 =head1 DESCRIPTION
 
 Business::Tax::Avalara is a simple interface to Avalara's REST-based sales tax webservice.
-It takes in a perl hash of data to send to Avalara, generates the XML, fetches a response,
+It takes in a perl hash of data to send to Avalara, generates the JSON, fetches a response,
 and converts that back into a perl hash structure.
-
-Currently, json output is not supported, though Avalara can return that. (Feel free to
-let me know if anyone would find that useful.)
 
 This module only supports the 'get_tax' method at the moment.
 
@@ -77,11 +73,6 @@ our $VERSION = '1.0.0';
 our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
-# Instanciate our latin1 and utf8 converters. Doing so here
-# allows speedier calls to encode() and decode() on the objects
-# later.
-our $LATIN1_CONVERTER = Encode::find_encoding( 'iso-8859-1' );
-our $UTF8_CONVERTER = Encode::find_encoding( 'utf8' );
 	
 =head1 FUNCTIONS
 
@@ -118,7 +109,14 @@ sub new
 {
 	my ( $class, %args ) = @_;
 	
-	# TODO: Require customer_code, company_code
+	my @required_fields = qw( customer_code company_code user_name password );
+	foreach my $required_field ( @required_fields )
+	{
+		if ( !defined $args{ $required_field } )
+		{
+			die "Could not instantiate Business::Tax::Avalara module: Required field >$required_field< is missing.";
+		}
+	}
 	
 	my $self = {
 		customer_code  => $args{'customer_code'},
@@ -136,9 +134,9 @@ sub new
 
 =head2 get_tax()
 
-Makes an XML request using the 'get_tax' method, parses the response, and returns a perl hash.
+Makes a JSON request using the 'get_tax' method, parses the response, and returns a perl hash.
 
-	$avalara_gateway->get_tax(
+	my $tax_results = $avalara_gateway->get_tax(
 		destination_address   => $address_hash,
 		origin_address        => $address_hash (may be specified in new),
 		document_date         => $date (optional), default is current date
@@ -150,8 +148,7 @@ Makes an XML request using the 'get_tax' method, parses the response, and return
 		detail_level          => $detail_level (optional), default 'Tax',
 		document_type         => $document_type (optional), default 'SalesOrder'
 		payment_date          => $date (optional),
-		reference_code        => $reference_code (optional),
-		
+		reference_code        => $reference_code (optional),		
 	);
 
 See below for the definitions of address and cart_line fields. The field origin_address
@@ -164,20 +161,48 @@ document_type is one of 'SalesOrder', 'SalesInvoice', 'PurchaseOrder', 'Purchase
 'ReturnOrder', and 'ReturnInvoice'.
 
 Returns a perl hashref based on the Avalara return.
-# TODO: Document the output.
+See the Avalara documentation for the full description of the output, but the highlights are:
+
+	{
+		ResultCode     => 'Success',
+		TaxAddresses   => [ array of address information ],
+		TaxDate        => Date,
+		TaxLines       =>
+		[
+			{
+				Discount      => Discount,
+				LineNo        => Line Number passed in,
+				Rate          => Tax rate used,
+				Tax           => Line item tax
+				Taxability    => "true" or "false",
+				Taxable       => Amount taxable,
+				TaxCalculated => Line item tax
+				TaxCode       => Tax Code used in the calculation
+				Tax Details   => Details about state, county, city components of the tax
+				
+			},
+			...
+		],
+		Timestamp      => Timestamp,
+		TotalAmount    => Total amount before tax
+		TotalDiscount  => Total Discount
+		TotalExemption => Total amount exempt
+		TotalTax       => Tax for the whole order
+		TotalTaxable   => Amount that's taxable
+	}
 =cut
 
 sub get_tax
 {
 	my ( $self, %args ) = @_;
 	
-	# Perl output, aka a hash ref, as opposed to XML or JSON.
+	# Perl output, aka a hash ref, as opposed to JSON.
 	my $tax_perl_output = {};
 	try
 	{
-		my $request_xml = $self->_generate_request_xml( %args );
-		my $result_xml = $self->_make_request( $request_xml );
-		$tax_perl_output = $self->_parse_response_xml( $result_xml );
+		my $request_json = $self->_generate_request_json( %args );
+		my $result_json = $self->_make_request_json( $request_json );
+		$tax_perl_output = $self->_parse_response_json( $result_json );
 	}
 	catch
 	{
@@ -189,73 +214,46 @@ sub get_tax
 }
 
 
-=head2 latin1_to_utf8()
-
-Converts a string from latin1 to utf8.
-
-    my $utf8 = latin1_to_utf8( $latin1 );
-
-=cut
-
-sub latin1_to_utf8
-{
-    my ( $latin1 ) = @_;
-    return unless defined( $latin1 );
-
-    return $UTF8_CONVERTER->encode( $LATIN1_CONVERTER->decode( $latin1 ) );
-}
-
-
 =head1 INTERNAL FUNCTIONS
 
-=head2 _generate_request_xml()
+=head2 _generate_request_json()
 
-Generates the XML to send to Avalara's web service.
+Generates the json to send to Avalara's web service.
 
-Returns an XML DOM object.
+Returns a JSON object.
 
 =cut
 
-sub _generate_request_xml
+sub _generate_request_json
 {
 	my ( $self, %args ) = @_;
-	my $document_node = XML::LibXML->createDocument( '1.0', 'UTF-8' );
-	my $root_node = $document_node->createElement( 'GetTaxRequest' );
-	$document_node->setDocumentElement( $root_node );
 	
-	# Add in all the required nodes.
+	# Add in all the required elements.
 	my @now = localtime();
 	my $doc_date = defined $args{'doc_date'}
 		? $args{'doc_date'}
 		: sprintf( "%4d-%02d-%02d", $now[5] + 1900, $now[4] + 1, $now[3] );
-		
-	my $doc_date_node = $document_node->createElement( 'DocDate' );
-	$doc_date_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $doc_date ) ) );
-	$root_node->appendChild( $doc_date_node );
+
+	my $request =
+	{
+		DocDate      => $doc_date,
+		CustomerCode => $self->{'customer_code'},
+		CompanyCode  => $self->{'company_code'},
+		Commit       => $args{'commit'} // 0,
+	};
 	
-	my $customer_code_node = $document_node->createElement( 'CustomerCode' );
-	$customer_code_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $self->{'customer_code'} ) ) );
-	$root_node->appendChild( $customer_code_node );
+	$request->{'Addresses'} = [ $self->_generate_address_json( $args{'destination_address'}, 1 ) ];
+	push @{ $request->{'Addresses'} },
+		$self->_generate_address_json( $self->{'origin_address'} // $args{'origin_address'}, 2 );
 	
-	my $addresses_node = $document_node->createElement( 'Addresses' );
-	my $destination_address_node = $self->_generate_address_xml( $document_node, $args{'destination_address'}, 1 );
-	$addresses_node->appendChild( $destination_address_node );
-	my $origin_address_node = $self->_generate_address_xml( $document_node, $self->{'origin_address'} // $args{'origin_address'}, 2 );
-	$addresses_node->appendChild( $origin_address_node );
-	$root_node->appendChild( $addresses_node );
+	$request->{'Lines'} = [];
 	
-	my $cart_lines_node = $document_node->createElement( 'Lines' );
 	my $counter = 1;
 	foreach my $cart_line ( @{ $args{'cart_lines'} } )
 	{
-		$cart_lines_node->appendChild( $self->_generate_cart_line_xml( $document_node, $cart_line, $counter ) );
+		push @{ $request->{'Lines'} }, $self->_generate_cart_line_json( $cart_line, $counter );
 		$counter++;
 	}
-	$root_node->appendChild( $cart_lines_node );
-	
-	my $commit_node = $document_node->createElement( 'Commit' );
-	$commit_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $args{'commit'} // 0 ) ) );
-	$root_node->appendChild( $commit_node );
 	
 	my %optional_nodes =
 	(
@@ -272,18 +270,17 @@ sub _generate_request_xml
 	foreach my $node_name ( keys %optional_nodes )
 	{
 		next if ( !defined $args{ $node_name } );
-		my $node = $document_node->createElement( $optional_nodes{ $node_name } );
-		$node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $args{ $node_name } ) ) );
-		$root_node->appendChild( $node );
+		$request->{ $optional_nodes{ $node_name } } = $args{ $node_name };
 	}
 	
-	return $document_node;
+	my $json = JSON::PP->new()->ascii()->pretty()->allow_nonref();
+	return $json->encode( $request );
 }
 
 
-=head2 _generate_address_xml()
+=head2 _generate_address_json()
 
-Given an address hashref, generates and returns an address XML node.
+Given an address hashref, generates and returns a data structure to be converted to JSON.
 
 An address hashref is defined as:
 
@@ -307,16 +304,14 @@ Country coes are ISO 3166-1 (alpha 2) format, such as 'US'.
 
 =cut
 
-sub _generate_address_xml
+sub _generate_address_json
 {
-	my ( $self, $document_node, $address, $address_code ) = @_;
+	my ( $self, $address, $address_code ) = @_;
 	
-	my $address_node = $document_node->createElement( 'Address' );
+	my $address_request = {};
 	
 	# Address code is just an internal identifier. In this module, 1 is destination, 2 is origin.
-	my $address_code_node = $document_node->createElement( 'AddressCode' );
-	$address_code_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $address_code ) ) );
-	$address_node->appendChild( $address_code_node );
+	$address_request->{'AddressCode'} = $address_code;
 	
 	my %nodes =
 	(
@@ -336,21 +331,20 @@ sub _generate_address_xml
 	{
 		if ( defined $address->{ $node } )
 		{
-			my $sub_node = $document_node->createElement( $nodes{ $node } );
-			$sub_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $address->{ $node } ) ) );
-			$address_node->appendChild( $sub_node );
+			$address_request->{ $nodes{ $node } } = $address->{ $node };
 		}
 	}
 	
-	return $address_node;
+	return $address_request;
 }
 
 
-=head2 _generate_cart_line_xml()
+=head2 _generate_cart_line_json()
 
-Generates an XML node from a cart_line hashref. Cart lines are:
+Generates a data structure from a cart_line hashref. Cart lines are:
 
 	my $cart_line = {
+		'line_number'         => $number (optional, will be generated if omitted.),
 		'item_code'           => $item_code
 		'sku'                 => $sku, # Use sku OR item_code
 		'tax_code'            => $tax_code,
@@ -371,25 +365,18 @@ states, different types of items have different tax rates.
 
 =cut
 
-sub _generate_cart_line_xml
+sub _generate_cart_line_json
 {
-	my ( $self, $document_node, $cart_line, $counter ) = @_;
+	my ( $self, $cart_line, $counter ) = @_;
 	
-	my $cart_line_node = $document_node->createElement( 'Line' );
-	
-	my $counter_node = $document_node->createElement( 'LineNo' );
-	$counter_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $counter ) ) );
-	$cart_line_node->appendChild( $counter_node );
+	my $cart_line_request = {};
+
+	$cart_line_request->{'LineNo'} = $cart_line->{'line_number'} // $counter;	
 	
 	# By convention, destionation is address 1, origin is address 2, in this module.
 	# It doesn't matter in the slightest, the labels just have to match.
-	my $destination_code = $document_node->createElement( 'DestinationCode' );
-	$destination_code->appendChild( XML::LibXML::Text->new( latin1_to_utf8( 1 ) ) );
-	$cart_line_node->appendChild( $destination_code );
-	
-	my $origin_code = $document_node->createElement( 'OriginCode' );
-	$origin_code->appendChild( XML::LibXML::Text->new( latin1_to_utf8( 2 ) ) );
-	$cart_line_node->appendChild( $origin_code );
+	$cart_line_request->{'DestinationCode'} = 1;
+	$cart_line_request->{'OriginCode'} = 2;
 	
 	my %nodes =
 	(
@@ -410,28 +397,24 @@ sub _generate_cart_line_xml
 	{
 		if ( defined $cart_line->{ $node } )
 		{
-			my $sub_node = $document_node->createElement( $nodes{ $node } );
-			$sub_node->appendChild( XML::LibXML::Text->new( latin1_to_utf8( $cart_line->{ $node } ) ) );
-			$cart_line_node->appendChild( $sub_node );
+			$cart_line_request->{ $nodes{ $node } } = $cart_line->{ $node };
 		}
 	}
 	
-	return $cart_line_node;
+	return $cart_line_request;
 }
 
 
-=head2 _make_request()
+=head2 _make_request_json()
 
-Makes the https request to Avalara, and returns the response xml.
+Makes the https request to Avalara, and returns the response json.
 
 =cut
 
-sub _make_request
+sub _make_request_json
 {
-	my ( $self, $request_xml ) = @_;
-	
-	my $request_text = $request_xml->toString( 0 );
-	
+	my ( $self, $request_json ) = @_;
+		
 	my $request_server = $self->{'is_development'}
 		? $AVALARA_DEVELOPMENT_REQUEST_SERVER
 		: $AVALARA_REQUEST_SERVER;
@@ -451,9 +434,9 @@ sub _make_request
 		$self->{'password'},
 	);
 	
-	$request->header( content_type => 'text/xml' );
-	$request->content( $request_text );
-	$request->header( content_length => length( $request_text ) );
+	$request->header( content_type => 'text/json' );
+	$request->content( $request_json );
+	$request->header( content_length => length( $request_json ) );
 	
 	# Pass request to the user agent and get a response back
 	my $response = $user_agent->request( $request );
@@ -468,65 +451,25 @@ sub _make_request
 		warn $response->status_line();
 		warn $request->as_string();
 		warn $response->as_string();
-		die "Failed to fetch XML response: " . $response->status_line() . "\n";
+		die "Failed to fetch JSON response: " . $response->status_line() . "\n";
 	}
 	
 	return;
 }
 
 
-=head2 _parse_response_xml()
+=head2 _parse_response_json()
 
-Converts the returned XML into a perl hash.
-
-=cut
-
-sub _parse_response_xml
-{
-	my ( $self, $response_xml ) = @_;
-	my $response_hash = {};
-	
-	my $xml_document;
-	try
-	{
-		$xml_document = $self->_parse_xml( $response_xml );
-	}
-	catch
-	{
-		die "Failed to parse xml document: $_\n";
-	};
-	
-	my $xml_converter = XML::Hash->new();
-	$response_hash = $xml_converter->fromDOMtoHash( $xml_document );
-
-	return $response_hash;
-}
-
-
-=head2 _parse_xml()
-
-Parses the XML string into a DOM object.
+Converts the returned JSON into a perl hash.
 
 =cut
 
-sub _parse_xml
+sub _parse_response_json
 {
-	my ( $self, $xml ) = @_;
+	my ( $self, $response_json ) = @_;
 	
-	my $xml_document;
-	try
-	{
-		my $parser = XML::LibXML->new();
-		$xml_document = $parser->load_xml( string => $xml );
-	}
-	catch
-	{
-		die "Could not parse XML: $_\n";
-	};
-	
-	# TODO: Add some sanity checks here.
-	
-	return $xml_document;
+	my $json = JSON::PP->new()->ascii()->pretty()->allow_nonref();
+	return $json->decode( $response_json );
 }
 
 
