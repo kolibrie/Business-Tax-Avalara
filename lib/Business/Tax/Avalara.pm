@@ -148,7 +148,8 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		detail_level          => $detail_level (optional), default 'Tax',
 		document_type         => $document_type (optional), default 'SalesOrder'
 		payment_date          => $date (optional),
-		reference_code        => $reference_code (optional),		
+		reference_code        => $reference_code (optional),
+		commit                => 1|0, # Default 0, whether this is a 'final' query.
 	);
 
 See below for the definitions of address and cart_line fields. The field origin_address
