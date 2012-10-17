@@ -74,11 +74,11 @@ my %cart_line_tax =
 	'4' => 1.95,
 );
 
-foreach my $cart_line ( @{ $response->{'TaxLines'} } )
+foreach my $cart_line_id ( keys %{ $response->{'TaxLines'} } )
 {
 	is (
-		$cart_line->{'Tax'},
-		$cart_line_tax{ $cart_line->{'LineNo'} },
-		"Tax is correct for line $cart_line->{'LineNo'}.",
+		$response->{'TaxLines'}->{ $cart_line_id }->{'Tax'},
+		$cart_line_tax{ $cart_line_id },
+		"Tax is correct for line $cart_line_id.",
 	);
 }

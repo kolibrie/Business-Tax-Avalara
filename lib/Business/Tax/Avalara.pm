@@ -169,7 +169,8 @@ See the Avalara documentation for the full description of the output, but the hi
 		TaxAddresses   => [ array of address information ],
 		TaxDate        => Date,
 		TaxLines       =>
-		[
+		{
+			LineNumber => # The value of the line number
 			{
 				Discount      => Discount,
 				LineNo        => Line Number passed in,
@@ -183,7 +184,7 @@ See the Avalara documentation for the full description of the output, but the hi
 				
 			},
 			...
-		],
+		},
 		Timestamp      => Timestamp,
 		TotalAmount    => Total amount before tax
 		TotalDiscount  => Total Discount
@@ -470,7 +471,15 @@ sub _parse_response_json
 	my ( $self, $response_json ) = @_;
 	
 	my $json = JSON::PP->new()->ascii()->pretty()->allow_nonref();
-	return $json->decode( $response_json );
+	my $perl = $json->decode( $response_json );
+	
+	my $lines = delete $perl->{'TaxLines'};
+	foreach my $line ( @$lines )
+	{
+		$perl->{'TaxLines'}->{ $line->{'LineNo'} } = $line;
+	}
+	
+	return $perl;
 }
 
 
