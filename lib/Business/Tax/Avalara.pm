@@ -88,6 +88,8 @@ between requests.
 		pasword        => $password,
 		is_development => boolean (optional), default 0
 		origin_address => $origin_address (optional),
+		memcached      => A Cache::Memcached or Cache::Memcached::Fast object.
+
 	);
 	
 The fields customer_code, company_code, user_name, and password should be
@@ -100,6 +102,10 @@ production uses.
 origin_address can either be set here, or passed into get_tax, depending on if
 it changes per request, or if you're always shipping from the same location.
 It is a hash ref, see below for formatting details.
+
+If a memcached object is passed in, we can use this so that we don't send the same
+request over in a certain period of time. This combines below with 'cache_timespan'
+and 'unique_key' in the get_tax() call.
 
 Returns a Business::Tax::Avalara object.
 
@@ -150,6 +156,8 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		payment_date          => $date (optional),
 		reference_code        => $reference_code (optional),
 		commit                => 1|0, # Default 0, whether this is a 'final' query.
+		unique_key            => A unique key for memcache (optional, see below)
+		cache_timespan        => The number of seconds to cache results (see below)
 	);
 
 See below for the definitions of address and cart_line fields. The field origin_address
@@ -160,6 +168,9 @@ See the Avalara documentation for the distinctions.
 
 document_type is one of 'SalesOrder', 'SalesInvoice', 'PurchaseOrder', 'PurchaseInvoice',
 'ReturnOrder', and 'ReturnInvoice'.
+
+If cache_timespan is set and you passed a memcached object into new(), it will attempt
+to cache the result based on the unique key passed in.
 
 Returns a perl hashref based on the Avalara return.
 See the Avalara documentation for the full description of the output, but the highlights are:
@@ -198,20 +209,45 @@ sub get_tax
 {
 	my ( $self, %args ) = @_;
 	
-	# Perl output, aka a hash ref, as opposed to JSON.
-	my $tax_perl_output = {};
-	try
-	{
-		my $request_json = $self->_generate_request_json( %args );
-		my $result_json = $self->_make_request_json( $request_json );
-		$tax_perl_output = $self->_parse_response_json( $result_json );
-	}
-	catch
-	{
-		carp( "Failed to fetch Avalara tax information: ", $_ );
-		return undef;
-	};
+	my $unique_key = delete $args{'unique_key'};
+	my $cache_timespan = delete $args{'cache_timespan'};
 	
+	# Perl output, aka a hash ref, as opposed to JSON.
+	my $tax_perl_output = undef;
+	
+	if ( defined( $cache_timespan ) )
+	{
+		# Cache event.
+		$tax_perl_output = $self->get_cache(
+			key         => $unique_key,
+		);
+	}
+	
+	if ( !defined $tax_perl_output )
+	{
+		# It wasn't in the cache or we aren't using cache, go get it.
+		try
+		{
+			my $request_json = $self->_generate_request_json( %args );
+			my $result_json = $self->_make_request_json( $request_json );
+			$tax_perl_output = $self->_parse_response_json( $result_json );
+		}
+		catch
+		{
+			carp( "Failed to fetch Avalara tax information: ", $_ );
+			return undef;
+		};
+		
+		if ( defined( $cache_timespan ) )
+		{
+			# Set it in the cache.
+			$self->set_cache(
+				key         => $unique_key,
+				value       => $tax_perl_output,
+				expire_time => $cache_timespan,
+			);
+		}
+	}
 	return $tax_perl_output;
 }
 
@@ -480,6 +516,86 @@ sub _parse_response_json
 	}
 	
 	return $perl;
+}
+
+
+
+=head2 get_memcache()
+
+Return the database handle tied to the audit object.
+
+	my $memcache = $avalara_gateway->get_memcache();
+
+=cut
+
+sub get_memcache
+{
+	my ( $self ) = @_;
+
+	return $self->{'memcache'};
+}
+
+
+=head2 get_cache()
+
+Get a value from the cache.
+
+	my $value = $avalara_gateway->get_cache( key => $key );
+
+=cut
+
+sub get_cache
+{
+	my ( $self, %args ) = @_;
+	my $key = delete( $args{'key'} );
+	croak 'Invalid argument(s): ' . join( ', ', keys %args )
+		if scalar( keys %args ) != 0;
+	
+	# Check parameters.
+	croak 'The parameter "key" is mandatory'
+		if !defined( $key ) || $key !~ /\w/;
+	
+	my $memcache = $self->get_memcache();
+	return undef
+		if !defined( $memcache );
+	
+	return $memcache->get( $key );
+}
+
+
+=head2 set_cache()
+
+Set a value into the cache.
+
+	$avalara_gateway->set_cache(
+		key         => $key,
+		value       => $value,
+		expire_time => $expire_time,
+	);
+
+=cut
+
+sub set_cache
+{
+	my ( $self, %args ) = @_;
+	my $key = delete( $args{'key'} );
+	my $value = delete( $args{'value'} );
+	my $expire_time = delete( $args{'expire_time'} );
+	croak 'Invalid argument(s): ' . join( ', ', keys %args )
+		if scalar( keys %args ) != 0;
+	
+	# Check parameters.
+	croak 'The parameter "key" is mandatory'
+		if !defined( $key ) || $key !~ /\w/;
+	
+	my $memcache = $self->get_memcache();
+	return
+		if !defined( $memcache );
+	
+	$memcache->set( $key, $value, $expire_time )
+		|| carp 'Failed to set cache with key >' . $key . '<';
+	
+	return;
 }
 
 
