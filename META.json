@@ -1,0 +1,62 @@
+{
+   "abstract" : "An interface to Avalara's REST webservice",
+   "author" : [
+      "Kate Kirby <kate@cpan.org>"
+   ],
+   "dynamic_config" : 1,
+   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921",
+   "license" : [
+      "open_source"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "Business-Tax-Avalara",
+   "prereqs" : {
+      "build" : {
+         "requires" : {
+            "Test::Deep" : "0",
+            "Test::Exception" : "0",
+            "Test::More" : "0"
+         }
+      },
+      "configure" : {
+         "requires" : {
+            "Module::Build" : "0"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "Carp" : "0",
+            "Data::Dump" : "0",
+            "Encode" : "0",
+            "JSON::PP" : "0",
+            "LWP::Protocol::https" : "0",
+            "LWP::UserAgent" : "0",
+            "Try::Tiny" : "0",
+            "perl" : "5.01"
+         }
+      }
+   },
+   "provides" : {
+      "Business::Tax::Avalara" : {
+         "file" : "lib/Business/Tax/Avalara.pm",
+         "version" : "v1.0.0"
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Business-Tax-Avalara"
+      },
+      "homepage" : "https://metacpan.org/release/Business-Tax-Avalara",
+      "license" : [
+         "http://www.gnu.org/licenses/gpl-3.0.txt"
+      ],
+      "repository" : {
+         "url" : "https://github.com/katekirby/Business-Tax-Avalara.git"
+      }
+   },
+   "version" : "v1.0.0"
+}

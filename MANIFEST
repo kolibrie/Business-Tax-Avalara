@@ -6,11 +6,17 @@ Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
+lib/Business/Tax/Avalara.pm
 README
 t/00-load.t
+t/01-local_config.t
+t/10-new.t
+t/20-get_tax.t
+LICENSE
 t/manifest.t
 t/module_versions.t
 t/perlcritic.t
 t/pod.t
 t/pod-coverage.t
 META.json
+README.md

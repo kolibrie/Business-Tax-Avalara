@@ -1,4 +1,4 @@
-use 5.10;
+use 5.010;
 use strict;
 use warnings;
 use Module::Build;
@@ -19,7 +19,7 @@ my $builder = Module::Build->new(
 	},
 	requires             =>
 	{
-		'perl'                 => 5.10,
+		'perl'                 => 5.010,
 		'Try::Tiny'            => 0,
 		'LWP::UserAgent'       => 0,
 		'Carp'                 => 0,
