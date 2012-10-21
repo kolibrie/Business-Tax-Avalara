@@ -1,5 +1,7 @@
 package Business::Tax::Avalara;
 
+use 5.010;
+
 use strict;
 use warnings;
 
@@ -420,7 +422,7 @@ sub _generate_cart_line_json
 	(
 		'item_code'           => 'ItemCode',
 		'sku'                 => 'ItemCode', # Use sku OR item_code
-		'tax_code'            => 'TaxCode', # TODO: Give some interface for this
+		'tax_code'            => 'TaxCode',
 		'customer_usage_type' => 'CustomerUsageType',
 		'description'         => 'Description',
 		'quantity'            => 'Qty',
