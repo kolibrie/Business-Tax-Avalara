@@ -84,14 +84,14 @@ Creates a new Business::Tax::Avalara object with various options that do not cha
 between requests.
 
 	my $avalara_gateway = Business::Tax::Avalara->new(
-		customer_code  => $customer_code,
-		company_code   => $company_code,
-		user_name      => $user_name
-		pasword        => $password,
-		is_development => boolean (optional), default 0
-		origin_address => $origin_address (optional),
-		memcached      => A Cache::Memcached or Cache::Memcached::Fast object.
-
+		customer_code   => $customer_code,
+		company_code    => $company_code,
+		user_name       => $user_name
+		pasword         => $password,
+		is_development  => boolean (optional), default 0
+		origin_address  => $origin_address (optional),
+		memcached       => A Cache::Memcached or Cache::Memcached::Fast object.
+		request_timeout => Request timeout in seconds. Default is 3.
 	);
 	
 The fields customer_code, company_code, user_name, and password should be
@@ -127,12 +127,13 @@ sub new
 	}
 	
 	my $self = {
-		customer_code  => $args{'customer_code'},
-		company_code   => $args{'company_code'},
-		is_development => $args{'is_development'} // 0,
-		user_name      => $args{'user_name'},
-		password       => $args{'password'},
-		origin_address => $args{'origin_address'},
+		customer_code   => $args{'customer_code'},
+		company_code    => $args{'company_code'},
+		is_development  => $args{'is_development'} // 0,
+		user_name       => $args{'user_name'},
+		password        => $args{'password'},
+		origin_address  => $args{'origin_address'},
+		request_timeout => $args{'request_timeout'} // 3,
 	};
 	
 	bless $self, $class;
@@ -463,6 +464,7 @@ sub _make_request_json
 	# Create a user agent object
 	my $user_agent = LWP::UserAgent->new();
 	$user_agent->agent( "perl/Business-Tax-Avalara/$VERSION" );
+	$user_agent->timeout( $self->{'request_timeout'} );
 	
 	# Create a request
 	my $request = HTTP::Request::Common::POST(
