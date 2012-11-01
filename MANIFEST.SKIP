@@ -1,3 +1,4 @@
 ^MYMETA.yml$
 ^.git
 lib/AvalaraConfig.pm
+MyProject.komodoproject

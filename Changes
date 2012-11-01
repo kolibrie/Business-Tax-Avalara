@@ -1,5 +1,8 @@
 Revision history for Business-Tax-Avalara
 
+1.0.2   11/01/2012
+        Added a request timeout, set the default to 3 seconds.
+        
 1.0.1   10/20/2012
         Added explicit perl version.
         
