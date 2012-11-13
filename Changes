@@ -1,5 +1,8 @@
 Revision history for Business-Tax-Avalara
 
+1.0.3   11/13/2012
+        Changed commit boolean to send 'true' or 'false'.
+
 1.0.2   11/01/2012
         Added a request timeout, set the default to 3 seconds.
         
