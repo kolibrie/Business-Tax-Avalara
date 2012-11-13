@@ -280,7 +280,7 @@ sub _generate_request_json
 		DocDate      => $doc_date,
 		CustomerCode => $self->{'customer_code'},
 		CompanyCode  => $self->{'company_code'},
-		Commit       => $args{'commit'} // 0,
+		Commit       => ( $args{'commit'} // 0 ) ? 'true' : 'false',
 	};
 	
 	$request->{'Addresses'} = [ $self->_generate_address_json( $args{'destination_address'}, 1 ) ];
@@ -393,8 +393,8 @@ Generates a data structure from a cart_line hashref. Cart lines are:
 		'description'         => $description,
 		'quantity'            => $quantity,
 		'amount'              => $amount, # Extended price, ie, price * quantity
-		'discounted'          => $is_included_in_discount, # Boolean
-		'tax_included'        => $is_tax_included, # Boolean
+		'discounted'          => $is_included_in_discount, # Boolean (True or False)
+		'tax_included'        => $is_tax_included, # Boolean (True or False)
 		'ref_1'               => $reference_1,
 		'ref_2'               => $reference_2,
 	}

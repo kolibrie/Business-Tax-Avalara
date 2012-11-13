@@ -32,7 +32,7 @@ my %lookup_data = (
 			city        => 'Fairfax',
 			postal_code => '22030',
 		},
-		cart_lines =>
+	cart_lines =>
 		[
 			{
 				sku         => '42ACE',
@@ -49,6 +49,7 @@ my %lookup_data = (
 				line_number => 4,
 			}
 		],
+	commit => 1,
 );
 
 ok (
