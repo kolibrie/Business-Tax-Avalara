@@ -67,11 +67,11 @@ This module only supports the 'get_tax' method at the moment.
 
 =head1 VERSION
 
-Version 1.0.3
+Version 1.0.4
 
 =cut
 
-our $VERSION = '1.0.3';
+our $VERSION = '1.0.4';
 our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
@@ -122,7 +122,7 @@ sub new
 	{
 		if ( !defined $args{ $required_field } )
 		{
-			die "Could not instantiate Business::Tax::Avalara module: Required field >$required_field< is missing.";
+			croak "Could not instantiate Business::Tax::Avalara module: Required field >$required_field< is missing.";
 		}
 	}
 	
@@ -238,7 +238,7 @@ sub get_tax
 		catch
 		{
 			carp( "Failed to fetch Avalara tax information: ", $_ );
-			return undef;
+			return;
 		};
 		
 		if ( defined( $cache_timespan ) )
@@ -490,10 +490,10 @@ sub _make_request_json
 	}
 	else
 	{
-		warn $response->status_line();
-		warn $request->as_string();
-		warn $response->as_string();
-		die "Failed to fetch JSON response: " . $response->status_line() . "\n";
+		carp $response->status_line();
+		carp $request->as_string();
+		carp $response->as_string();
+		croak "Failed to fetch JSON response: " . $response->status_line() . "\n";
 	}
 	
 	return;
@@ -560,7 +560,7 @@ sub get_cache
 		if !defined( $key ) || $key !~ /\w/;
 	
 	my $memcache = $self->get_memcache();
-	return undef
+	return
 		if !defined( $memcache );
 	
 	return $memcache->get( $key );
