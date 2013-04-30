@@ -18,7 +18,7 @@ name: Business-Tax-Avalara
 provides:
   Business::Tax::Avalara:
     file: lib/Business/Tax/Avalara.pm
-    version: v1.0.4
+    version: v1.0.5
 requires:
   Carp: 0
   Data::Dump: 0
@@ -33,4 +33,4 @@ resources:
   homepage: https://metacpan.org/release/Business-Tax-Avalara
   license: http://www.gnu.org/licenses/gpl-3.0.txt
   repository: https://github.com/katekirby/Business-Tax-Avalara.git
-version: v1.0.4
+version: v1.0.5
