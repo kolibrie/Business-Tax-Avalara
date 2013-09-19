@@ -67,11 +67,11 @@ This module only supports the 'get_tax' method at the moment.
 
 =head1 VERSION
 
-Version 1.0.5
+Version 1.0.6
 
 =cut
 
-our $VERSION = '1.0.5';
+our $VERSION = '1.0.6';
 our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
@@ -156,6 +156,7 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		exemption_number      => $exemption_number (optional),
 		detail_level          => $detail_level (optional), default 'Tax',
 		document_type         => $document_type (optional), default 'SalesOrder'
+		document_code         => $document_code (optional), a unique identifier
 		payment_date          => $date (optional),
 		reference_code        => $reference_code (optional),
 		commit                => 1|0, # Default 0, whether this is a 'final' query.
@@ -171,6 +172,10 @@ See the Avalara documentation for the distinctions.
 
 document_type is one of 'SalesOrder', 'SalesInvoice', 'PurchaseOrder', 'PurchaseInvoice',
 'ReturnOrder', and 'ReturnInvoice'.
+
+document_code is optional, but highly recommended. If you do not include this,
+Avalara will generate a new internal unique id for each request, and it does not
+associate the commits to any queries you made along the way.
 
 If cache_timespan is set and you passed a memcached object into new(), it will attempt
 to cache the result based on the unique key passed in.
@@ -306,6 +311,7 @@ sub _generate_request_json
 		document_type         => 'DocType',
 		payment_date          => 'PaymentDate',
 		reference_code        => 'ReferenceCode',
+		document_code         => 'DocCode',
 	);
 	
 	foreach my $node_name ( keys %optional_nodes )
