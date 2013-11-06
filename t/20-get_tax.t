@@ -14,7 +14,7 @@ use Business::Tax::Avalara;
 eval 'use AvalaraConfig';
 $@
 	? plan( skip_all => 'Local connection information for Avalara required to run tests.' )
-	: plan( tests => 6 );
+	: plan( tests => 7 );
 
 my $config = AvalaraConfig->new();
 
@@ -50,6 +50,7 @@ my %lookup_data = (
 			}
 		],
 	commit => 1,
+	document_code => 666,
 );
 
 ok (
@@ -67,6 +68,12 @@ is (
 	$response->{'TotalTax'},
 	2.88,
 	'Total Tax is correct.'
+);
+
+is(
+	$response->{'Commit'},
+	'true',
+	'Commit bit is set.'
 );
 
 my %cart_line_tax =

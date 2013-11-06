@@ -4,7 +4,7 @@
       "Kate Kirby <kate@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Module::Build version 0.4005, CPAN::Meta::Converter version 2.130880",
    "license" : [
       "open_source"
    ],
@@ -42,7 +42,7 @@
    "provides" : {
       "Business::Tax::Avalara" : {
          "file" : "lib/Business/Tax/Avalara.pm",
-         "version" : "v1.0.3"
+         "version" : "v1.0.6"
       }
    },
    "release_status" : "stable",
@@ -58,5 +58,5 @@
          "url" : "https://github.com/katekirby/Business-Tax-Avalara.git"
       }
    },
-   "version" : "v1.0.3"
+   "version" : "v1.0.6"
 }

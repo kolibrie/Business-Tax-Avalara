@@ -54,7 +54,7 @@ my %lookup_data = (
 			}
 		],
 	commit        => 1,
-	doc_code      => $doc_code,
+	document_code => $doc_code,
 	document_type => 'SalesInvoice',
 );
 

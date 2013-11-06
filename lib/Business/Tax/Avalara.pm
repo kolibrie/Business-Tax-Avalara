@@ -67,11 +67,11 @@ This module only supports the 'get_tax' method at the moment.
 
 =head1 VERSION
 
-Version 1.0.3
+Version 1.0.6
 
 =cut
 
-our $VERSION = '1.0.3';
+our $VERSION = '1.0.6';
 our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
@@ -126,7 +126,7 @@ sub new
 	{
 		if ( !defined $args{ $required_field } )
 		{
-			die "Could not instantiate Business::Tax::Avalara module: Required field >$required_field< is missing.";
+			croak "Could not instantiate Business::Tax::Avalara module: Required field >$required_field< is missing.";
 		}
 	}
 	
@@ -161,6 +161,7 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		exemption_number      => $exemption_number (optional),
 		detail_level          => $detail_level (optional), default 'Tax',
 		document_type         => $document_type (optional), default 'SalesOrder'
+		document_code         => $document_code (optional), a unique identifier
 		payment_date          => $date (optional),
 		reference_code        => $reference_code (optional),
 		commit                => 1|0, # Default 0, whether this is a 'final' query.
@@ -177,6 +178,10 @@ See the Avalara documentation for the distinctions.
 
 document_type is one of 'SalesOrder', 'SalesInvoice', 'PurchaseOrder', 'PurchaseInvoice',
 'ReturnOrder', and 'ReturnInvoice'.
+
+document_code is optional, but highly recommended. If you do not include this,
+Avalara will generate a new internal unique id for each request, and it does not
+associate the commits to any queries you made along the way.
 
 If cache_timespan is set and you passed a memcached object into new(), it will attempt
 to cache the result based on the unique key passed in.
@@ -244,7 +249,7 @@ sub get_tax
 		catch
 		{
 			carp( "Failed to fetch Avalara tax information: ", $_ );
-			return undef;
+			return;
 		};
 		
 		if ( defined( $cache_timespan ) )
@@ -384,7 +389,7 @@ sub _generate_request_json
 		document_type         => 'DocType',
 		payment_date          => 'PaymentDate',
 		reference_code        => 'ReferenceCode',
-		doc_code              => 'DocCode',
+		document_code         => 'DocCode',
 	);
 	
 	foreach my $node_name ( keys %optional_nodes )
@@ -617,9 +622,9 @@ sub _make_request_json
 	}
 	else
 	{
-		warn $response->status_line();
-		warn $request->as_string();
-		warn $response->as_string();
+		carp $response->status_line();
+		carp $request->as_string();
+		carp $response->as_string();
 		carp "Failed to fetch JSON response: " . $response->status_line() . "\n";
 		return $response->content();
 	}
@@ -688,7 +693,7 @@ sub get_cache
 		if !defined( $key ) || $key !~ /\w/;
 	
 	my $memcache = $self->get_memcache();
-	return undef
+	return
 		if !defined( $memcache );
 	
 	return $memcache->get( $key );

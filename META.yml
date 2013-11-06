@@ -1,0 +1,36 @@
+---
+abstract: "An interface to Avalara's REST webservice"
+author:
+  - 'Kate Kirby <kate@cpan.org>'
+build_requires:
+  Test::Deep: 0
+  Test::Exception: 0
+  Test::More: 0
+configure_requires:
+  Module::Build: 0
+dynamic_config: 1
+generated_by: 'Module::Build version 0.4005, CPAN::Meta::Converter version 2.130880'
+license: open_source
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Business-Tax-Avalara
+provides:
+  Business::Tax::Avalara:
+    file: lib/Business/Tax/Avalara.pm
+    version: v1.0.6
+requires:
+  Carp: 0
+  Data::Dump: 0
+  Encode: 0
+  JSON::PP: 0
+  LWP::Protocol::https: 0
+  LWP::UserAgent: 0
+  Try::Tiny: 0
+  perl: 5.01
+resources:
+  bugtracker: http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Business-Tax-Avalara
+  homepage: https://metacpan.org/release/Business-Tax-Avalara
+  license: http://www.gnu.org/licenses/gpl-3.0.txt
+  repository: https://github.com/katekirby/Business-Tax-Avalara.git
+version: v1.0.6
