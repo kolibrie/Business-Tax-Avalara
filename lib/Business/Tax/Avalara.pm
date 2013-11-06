@@ -92,6 +92,7 @@ between requests.
 		origin_address  => $origin_address (optional),
 		memcached       => A Cache::Memcached or Cache::Memcached::Fast object.
 		request_timeout => Request timeout in seconds. Default is 3.
+		debug           => 0,
 	);
 	
 The fields customer_code, company_code, user_name, and password should be
@@ -108,6 +109,9 @@ It is a hash ref, see below for formatting details.
 If a memcached object is passed in, we can use this so that we don't send the same
 request over in a certain period of time. This combines below with 'cache_timespan'
 and 'unique_key' in the get_tax() call.
+
+If debug is set to a true value, it will dump out the raw json messages being sent to
+and coming back from Avalara.
 
 Returns a Business::Tax::Avalara object.
 
@@ -134,6 +138,7 @@ sub new
 		password        => $args{'password'},
 		origin_address  => $args{'origin_address'},
 		request_timeout => $args{'request_timeout'} // 3,
+		debug           => $args{'debug'} // 0,
 	};
 	
 	bless $self, $class;
@@ -480,9 +485,19 @@ sub _make_request_json
 	$request->content( $request_json );
 	$request->header( content_length => length( $request_json ) );
 	
+	if ( $self->{'debug'} )
+	{
+		Carp( 'Request to Avalara: ', $request );
+	}
+	
 	# Pass request to the user agent and get a response back
 	my $response = $user_agent->request( $request );
 	
+	if ( $self->{'debug'} )
+	{
+		Carp( 'Response from Avalara: ', $response );
+	}
+
 	# Check the outcome of the response
 	if ( $response->is_success() )
 	{
