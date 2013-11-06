@@ -65,14 +65,14 @@ is (
 
 is (
 	$response->{'TotalTax'},
-	2.4,
+	2.88,
 	'Total Tax is correct.'
 );
 
 my %cart_line_tax =
 (
-	'3' => 0.45,
-	'4' => 1.95,
+	'3' => 0.54,
+	'4' => 2.34,
 );
 
 foreach my $cart_line_id ( keys %{ $response->{'TaxLines'} } )
