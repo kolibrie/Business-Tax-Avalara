@@ -508,7 +508,8 @@ sub _make_request_json
 		warn $response->status_line();
 		warn $request->as_string();
 		warn $response->as_string();
-		die "Failed to fetch JSON response: " . $response->status_line() . "\n";
+		Carp "Failed to fetch JSON response: " . $response->status_line() . "\n";
+		return $response->content();
 	}
 	
 	return;
