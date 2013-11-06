@@ -14,11 +14,11 @@ use Business::Tax::Avalara;
 eval 'use AvalaraConfig';
 $@
 	? plan( skip_all => 'Local connection information for Avalara required to run tests.' )
-	: plan( tests => 7 );
+	: plan( tests => 6 );
 
 my $config = AvalaraConfig->new();
 
-my $avalara_gateway = Business::Tax::Avalara->new( %$config );
+my $avalara_gateway = Business::Tax::Avalara->new( %$config, debug => 0 );
 
 ok(
 	defined( $avalara_gateway ),
@@ -68,12 +68,6 @@ is (
 	$response->{'TotalTax'},
 	2.88,
 	'Total Tax is correct.'
-);
-
-is(
-	$response->{'Commit'},
-	'true',
-	'Commit bit is set.'
 );
 
 my %cart_line_tax =

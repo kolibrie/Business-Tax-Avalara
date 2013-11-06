@@ -1,5 +1,10 @@
 Revision history for Business-Tax-Avalara
 
+v1.1.0   2013-11-06
+        Added new function cancel_tax
+        Added debug mode option
+        Returning the error response on error rather than undef
+
 v1.0.6   2013-09-19
         Added document_code optional node.
         
