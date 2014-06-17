@@ -168,6 +168,7 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		unique_key            => A unique key for memcache (optional, see below)
 		cache_timespan        => The number of seconds to cache results (see below),
 		doc_code              => Unique document code (optional),
+		currency_code         => 3 character ISO 4217 compliant currency code (optional),
 	);
 
 See below for the definitions of address and cart_line fields. The field origin_address
@@ -390,6 +391,7 @@ sub _generate_request_json
 		payment_date          => 'PaymentDate',
 		reference_code        => 'ReferenceCode',
 		document_code         => 'DocCode',
+		currency_code         => 'CurrencyCode',
 	);
 	
 	foreach my $node_name ( keys %optional_nodes )
