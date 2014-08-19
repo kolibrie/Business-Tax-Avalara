@@ -72,7 +72,7 @@ Version 1.1.0
 =cut
 
 our $VERSION = '1.1.0';
-our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
+our $AVALARA_REQUEST_SERVER = 'avatax.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
 	
