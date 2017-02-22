@@ -167,7 +167,34 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		commit                => 1|0, # Default 0, whether this is a 'final' query.
 		unique_key            => A unique key for memcache (optional, see below)
 		cache_timespan        => The number of seconds to cache results (see below),
-		doc_code              => Unique document code (optional),
+	);
+
+
+If you are issuing a refund or credit memo for part of the order (for the full order
+you may want to void the order using the C<cancel_tax()> method), you may need to specify
+the date the tax was originally calculated, and you need to specify the amounts as
+negative values.
+
+	my $tax_results = $avalara_gateway->get_tax(
+		document_type         => 'ReturnInvoice',
+		document_code         => $original_order_number (optional), or a unique identifier
+		document_date         => $date (optional), default is current date
+		tax_override          => {
+			reason            => 'Return',
+			tax_override_type => 'TaxDate',
+			tax_date          => 'YYYY-MM-DD', # Original date of the order.
+		},
+		# Just the lines being refunded.
+		cart_lines            => [
+			{
+				sku      => $sku_identifier,
+				quantity => $number_of_units_to_refund,
+				amount   => $amount_to_refund,  # Negative value.
+			},
+		],
+		discount              => $amount_to_decrease_refund (optional),  # Negative value.
+		commit                => 1|0, # Default 0, whether this is a 'final' query.
+		# Include other fields as needed.
 	);
 
 See below for the definitions of address and cart_line fields. The field origin_address
@@ -398,6 +425,26 @@ sub _generate_request_json
 		$request->{ $optional_nodes{ $node_name } } = $args{ $node_name };
 	}
 	
+	my %tax_override_nodes =
+	(
+		'reason'              => 'Reason', # Typical reasons include: 'Return', 'Layaway', 'Imported'.
+		'tax_override_type'   => 'TaxOverrideType', # None, TaxAmount, Exemption, or TaxDate.
+		'tax_date'            => 'TaxDate', # Date the tax was calculated (if type is TaxDate).
+		'tax_amount'          => 'TaxAmount', # The amount of tax to apply (if type is TaxAmount).
+	);
+
+	# Fill in the TaxOverride values.
+	if ( defined $args{'tax_override'} )
+	{
+		foreach my $node ( keys %tax_override_nodes )
+		{
+			if ( defined $args{'tax_override'}{ $node } )
+			{
+				$request->{'TaxOverride'}{ $tax_override_nodes{ $node } } = $args{'tax_override'}{ $node };
+			}
+		}
+	}
+
 	my $json = JSON::PP->new()->ascii()->pretty()->allow_nonref();
 	return $json->encode( $request );
 }
@@ -553,12 +600,32 @@ sub _generate_cart_line_json
 		'ref_1'               => 'Ref1',
 		'ref_2'               => 'Ref2',
 	);
-	
+
 	foreach my $node ( keys %nodes )
 	{
 		if ( defined $cart_line->{ $node } )
 		{
 			$cart_line_request->{ $nodes{ $node } } = $cart_line->{ $node };
+		}
+	}
+
+	my %tax_override_nodes =
+	(
+		'reason'              => 'Reason', # Typical reasons include: 'Return', 'Layaway', 'Imported'.
+		'tax_override_type'   => 'TaxOverrideType', # None, TaxAmount, Exemption, or TaxDate.
+		'tax_date'            => 'TaxDate', # Date the tax was calculated (if type is TaxDate).
+		'tax_amount'          => 'TaxAmount', # The amount of tax to apply (if type is TaxAmount).
+	);
+
+	# Fill in the TaxOverride values.
+	if ( defined $cart_line->{'tax_override'} )
+	{
+		foreach my $node ( keys %tax_override_nodes )
+		{
+			if ( defined $cart_line->{'tax_override'}{ $node } )
+			{
+				$cart_line_request->{'TaxOverride'}{ $tax_override_nodes{ $node } } = $cart_line->{'tax_override'}{ $node };
+			}
 		}
 	}
 	
