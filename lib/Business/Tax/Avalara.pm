@@ -72,7 +72,7 @@ Version 1.1.0
 =cut
 
 our $VERSION = '1.1.0';
-our $AVALARA_REQUEST_SERVER = 'rest.avalara.net';
+our $AVALARA_REQUEST_SERVER = 'avatax.avalara.net';
 our $AVALARA_DEVELOPMENT_REQUEST_SERVER = 'development.avalara.net';
 
 	
@@ -167,6 +167,7 @@ Makes a JSON request using the 'get_tax' method, parses the response, and return
 		commit                => 1|0, # Default 0, whether this is a 'final' query.
 		unique_key            => A unique key for memcache (optional, see below)
 		cache_timespan        => The number of seconds to cache results (see below),
+		currency_code         => 3 character ISO 4217 compliant currency code (optional),
 	);
 
 
@@ -417,6 +418,7 @@ sub _generate_request_json
 		payment_date          => 'PaymentDate',
 		reference_code        => 'ReferenceCode',
 		document_code         => 'DocCode',
+		currency_code         => 'CurrencyCode',
 	);
 	
 	foreach my $node_name ( keys %optional_nodes )
