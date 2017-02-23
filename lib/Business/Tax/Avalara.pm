@@ -810,6 +810,10 @@ sub set_cache
 Kate Kirby, C<< <kate at cpan.org> >>.
 
 
+=head1 MAINTAINER
+
+Nathan Gray E<lt>kolibrie@cpan.orgE<gt>
+
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-business-tax-avalara at rt.cpan.org>, or through
@@ -858,6 +862,8 @@ and write code for them!
 =head1 COPYRIGHT & LICENSE
 
 Copyright 2012 Kate Kirby.
+
+Copyright (C) 2017 Nathan Gray
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
 
