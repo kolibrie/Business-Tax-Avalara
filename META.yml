@@ -9,7 +9,7 @@ build_requires:
 configure_requires:
   Module::Build: 0
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.133380'
 license: open_source
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -18,7 +18,7 @@ name: Business-Tax-Avalara
 provides:
   Business::Tax::Avalara:
     file: lib/Business/Tax/Avalara.pm
-    version: v1.1.0
+    version: v1.2.0
 requires:
   Carp: 0
   Data::Dump: 0
@@ -33,4 +33,4 @@ resources:
   homepage: https://metacpan.org/release/Business-Tax-Avalara
   license: http://www.gnu.org/licenses/gpl-3.0.txt
   repository: https://github.com/katekirby/Business-Tax-Avalara.git
-version: v1.1.0
+version: v1.2.0

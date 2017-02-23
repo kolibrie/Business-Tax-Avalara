@@ -1,5 +1,10 @@
 Revision history for Business-Tax-Avalara
 
+v1.2.0	 2017-02-23
+        Updated the Avalara API URL.
+        Added basic support for CurrencyCode.
+        Added the ability to specify the original tax date when issuing a refund on part of an order.
+
 v1.1.0   2013-11-06
         Added new function cancel_tax
         Added debug mode option
